@@ -6,7 +6,7 @@ import argparse
 import sys
 import os
 import math
-
+import wandb
 from os.path import join
 import torch.backends.cudnn as cudnn
 
@@ -26,6 +26,12 @@ from spodernet.utils.util import Timer
 from spodernet.preprocessing.processors import TargetIdx2MultiTarget
 import argparse
 
+wandb.init(
+  project="FB15k-237",
+  notes="test",
+  tags=["Kinship","plain"])
+
+
 
 np.set_printoptions(precision=3)
 
@@ -38,7 +44,6 @@ def preprocess(dataset_name, delete_data=False):
     train_path = 'data/{0}/e1rel_to_e2_train.json'.format(dataset_name)
     dev_ranking_path = 'data/{0}/e1rel_to_e2_ranking_dev.json'.format(dataset_name)
     test_ranking_path = 'data/{0}/e1rel_to_e2_ranking_test.json'.format(dataset_name)
-
     keys2keys = {}
     keys2keys['e1'] = 'e1' # entities
     keys2keys['rel'] = 'rel' # relations
@@ -85,7 +90,8 @@ def main(args, model_path):
     train_batcher = StreamBatcher(args.data, 'train', args.batch_size, randomize=True, keys=input_keys, loader_threads=args.loader_threads)
     dev_rank_batcher = StreamBatcher(args.data, 'dev_ranking', args.test_batch_size, randomize=False, loader_threads=args.loader_threads, keys=input_keys)
     test_rank_batcher = StreamBatcher(args.data, 'test_ranking', args.test_batch_size, randomize=False, loader_threads=args.loader_threads, keys=input_keys)
-
+    
+    # print('vocab',vocab)
 
     if args.model is None:
         model = ConvE(args, vocab['e1'].num_token, vocab['rel'].num_token)
@@ -115,7 +121,7 @@ def main(args, model_path):
         params = [(key, value.size(), value.numel()) for key, value in model_params.items()]
         for key, size, count in params:
             total_param_size.append(count)
-            print(key, size, count)
+            # print(key, size, count)
         print(np.array(total_param_size).sum())
         model.load_state_dict(model_params)
         model.eval()
@@ -133,18 +139,24 @@ def main(args, model_path):
     for epoch in range(args.epochs):
         model.train()
         for i, str2var in enumerate(train_batcher):
+            # print(i,str2var)
             opt.zero_grad()
             e1 = str2var['e1']
             rel = str2var['rel']
             e2_multi = str2var['e2_multi1_binary'].float()
+            # print('e2_multi_bef',e2_multi)
             # label smoothing
             e2_multi = ((1.0-args.label_smoothing)*e2_multi) + (1.0/e2_multi.size(1))
-
+            # print('e2_multi_smo',e2_multi)
+            # print('e1',e1)
+            # print('rel',rel)
+            # print('e2_multi_after',e2_multi)
+            
             pred = model.forward(e1, rel)
             loss = model.loss(pred, e2_multi)
             loss.backward()
             opt.step()
-
+            
             train_batcher.state.loss = loss.cpu()
 
 
@@ -155,9 +167,10 @@ def main(args, model_path):
         with torch.no_grad():
             if epoch % 5 == 0 and epoch > 0:
                 ranking_and_hits(model, dev_rank_batcher, vocab, 'dev_evaluation')
-            if epoch % 5 == 0:
-                if epoch > 0:
-                    ranking_and_hits(model, test_rank_batcher, vocab, 'test_evaluation')
+            if epoch % 5 == 0 and epoch > 0:
+                ranking_and_hits(model, test_rank_batcher, vocab, 'test_evaluation')
+        
+        # if epoch == 10: break
 
 
 if __name__ == '__main__':
@@ -185,7 +198,7 @@ if __name__ == '__main__':
     parser.add_argument('--hidden-size', type=int, default=9728, help='The side of the hidden layer. The required size changes with the size of the embeddings. Default: 9728 (embedding size 200).')
 
     args = parser.parse_args()
-
+    wandb.config.update(args) 
 
 
     # parse console parameters and set global variables
