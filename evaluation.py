@@ -6,12 +6,7 @@ from spodernet.utils.logger import Logger
 from torch.autograd import Variable
 from sklearn import metrics
 
-import wandb
-
 log = Logger('evaluation{0}.py.txt'.format(datetime.datetime.now()))
-
-
-
 
 def ranking_and_hits(model, dev_rank_batcher, vocab, name):
     log.info('')
@@ -103,4 +98,5 @@ def ranking_and_hits(model, dev_rank_batcher, vocab, name):
     log.info('Mean rank: {0}', np.mean(ranks))
     log.info('Mean reciprocal rank left: {0}', np.mean(1./np.array(ranks_left)))
     log.info('Mean reciprocal rank right: {0}', np.mean(1./np.array(ranks_right)))
+    log.info('Mean reciprocal rank: {0}', np.mean(1./np.array(ranks)));wandb.log({'Mean rank left':np.mean(ranks_left)});wandb.log({'Mean rank right':np.mean(ranks_right)});wandb.log({'Mean rank':np.mean(ranks)});wandb.log({'Mean reciprocal rank left':np.mean(1./np.array(ranks_left))});wandb.log({'Mean reciprocal rank right':np.mean(1./np.array(ranks_right))});wandb.log({'Mean reciprocal rank':np.mean(1./np.array(ranks))})
     log.info('Mean reciprocal rank: {0}', np.mean(1./np.array(ranks)));wandb.log({'Mean rank left':np.mean(ranks_left)});wandb.log({'Mean rank right':np.mean(ranks_right)});wandb.log({'Mean rank':np.mean(ranks)});wandb.log({'Mean reciprocal rank left':np.mean(1./np.array(ranks_left))});wandb.log({'Mean reciprocal rank right':np.mean(1./np.array(ranks_right))});wandb.log({'Mean reciprocal rank':np.mean(1./np.array(ranks))})

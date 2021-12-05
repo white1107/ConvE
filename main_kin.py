@@ -6,7 +6,6 @@ import argparse
 import sys
 import os
 import math
-import wandb
 
 from os.path import join
 import torch.backends.cudnn as cudnn
@@ -26,11 +25,6 @@ from spodernet.hooks import LossHook, ETAHook
 from spodernet.utils.util import Timer
 from spodernet.preprocessing.processors import TargetIdx2MultiTarget
 import argparse
-
-wandb.init(
-  project="ConvE-sand-FB15k-237",
-  notes="2conv-mp",
-  tags=["conv","2","mp"])
 
 
 np.set_printoptions(precision=3)
